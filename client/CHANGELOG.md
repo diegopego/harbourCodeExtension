@@ -1,6 +1,50 @@
 # Change Log
 All notable changes to the "Harbour and xHarbour" extension will be documented in this file.
 
+# 1.0.0
+ - **server** fixed crash [#70](https://github.com/APerricone/harbourCodeExtension/issues/70)
+
+# 0.9.16
+ - **server** fixed crash on space before -> [#69](https://github.com/APerricone/harbourCodeExtension/issues/69)
+
+# 0.9.15
+ - **server** fixed freeze looking for references last word of the file
+ - **server** even better performance on long splitted line [#68](https://github.com/APerricone/harbourCodeExtension/issues/68) (the sample file come from 1.7sec to 0.17 on my PC)
+
+# 0.9.14
+ - **server** better performance on long splitted line [#68](https://github.com/APerricone/harbourCodeExtension/issues/68)
+ - **server** first support for [semantic token](https://code.visualstudio.com/api/language-extensions/semantic-highlight-guide)
+ - **server** first support for "[find all references](https://code.visualstudio.com/api/language-extensions/programmatic-language-features#find-all-references-to-a-symbol)"
+ - **validation** hightlight of unused symbol
+ - **syntax** added shared keyword [#64](https://github.com/APerricone/harbourCodeExtension/issues/64)
+
+# 0.9.13
+ - **debugger** better stability
+
+# 0.9.12
+ - **debugger** better stability
+ - **task** better stability
+ - **task** correct management of batch option
+
+# 0.9.11
+ - **server** fixes case of unfound parent [#57](https://github.com/APerricone/harbourCodeExtension/issues/57)
+ - **syntax** fixes [memvar aliasing syntax highlighting #58](https://github.com/APerricone/harbourCodeExtension/issues/58),
+    [Multiline "inline" class methods syntax highlighting #59](https://github.com/APerricone/harbourCodeExtension/issues/59),
+    [Try catch syntax highlighting #60](https://github.com/APerricone/harbourCodeExtension/issues/60) by [Edgard Lorraine Messias](https://github.com/edgardmessias)
+ - **debugger** better step out and step next support
+ - **server** better code folding see [#56](https://github.com/APerricone/harbourCodeExtension/issues/56)
+ - **task** added temporary variable solver waiting for [VSCode #81007](https://github.com/microsoft/vscode/issues/81007)
+
+ Many thanks to [Seth Hovestol](https://github.com/Hovestar) for bug reporting
+
+# 0.9.10
+ - **debugger** added process list on attach, attach by process Id
+ - **task** added Harbour and HBMK2 tasks, BETA
+ - **server** added completition and go to definition on #pragma include [#45](https://github.com/APerricone/harbourCodeExtension/issues/45)
+ - **syntax** better operator and keyworld list
+ - **debugger** better filename uppercase/lowercase check using external library
+ - **general** updated used libraries
+
 # 0.9.9
  - **server** fixed error message "cannot read property" [#43](https://github.com/APerricone/harbourCodeExtension/issues/43)
  - **server** restored define "go to definition"
@@ -11,10 +55,10 @@ All notable changes to the "Harbour and xHarbour" extension will be documented i
 
 # 0.9.7
  - missing files
- 
+
 # 0.9.6
  - **server** [better outline and breadcump](https://github.com/APerricone/harbourCodeExtension/raw/master/images/0_9_6.png)
- - **debugger** fixed compilation with xHarbour, see #38 
+ - **debugger** fixed compilation with xHarbour, see #38
  - **server** better group nearest support
  - **syntax** fixed classdata syntax highlight
  - **server** better define support
@@ -50,13 +94,13 @@ All notable changes to the "Harbour and xHarbour" extension will be documented i
 
 # 0.9.0
  - **server** add hover for defines
- - **syntax** a lot of fixes by [Edgard Lorraine Messias](mailto:edgardmessias@gmail.com)
+ - **syntax** a lot of fixes by [Edgard Lorraine Messias](https://github.com/edgardmessias)
  - **server** added information about class during completition
 
 # 0.8.12
  - **debugger** Added options for error management
  - **server** Fix some crash
- - **syntax** use of [Edgard Lorraine Messias](mailto:edgardmessias@gmail.com) syntax
+ - **syntax** use of [Edgard Lorraine Messias](https://github.com/edgardmessias) syntax
  - **server** Fixed deletion of wrong fields
 
 # 0.8.10 - 0.8.11
@@ -70,8 +114,8 @@ All notable changes to the "Harbour and xHarbour" extension will be documented i
  - **server** Added word based suggestions [#16](https://github.com/APerricone/harbourCodeExtension/issues/16)
  - **server** Added keyword suggestions
  - **debugger** Added support for multiline string
- - **debugger** Added terminalType option 
- - **debugger** Added handshake 
+ - **debugger** Added terminalType option
+ - **debugger** Added handshake
  - **server** Added define on complettion and definition
  - **server** Added public and data in go to workspace symbol
  - **debugger** fix statics in some conditions
@@ -80,14 +124,14 @@ All notable changes to the "Harbour and xHarbour" extension will be documented i
  - **server** Added check if C file is a compiled prg [#12](https://github.com/APerricone/harbourCodeExtension/issues/12)
  - **server** Removed unused code to avoid performance issues
  - **validation** correct working dir
- 
+
 # 0.8.6
  - **server** added workspaceDepth to fix [#11](https://github.com/APerricone/harbourCodeExtension/issues/11)
  - **server** changed behaviour of search inside symbols, to match VSCode behaviour.
  - **server** fix name of member all lowercase
  - **server** better field management on completition
  - **server** better word match
- - **server** better database management 
+ - **server** better database management
  - **validation** Better support for relative include path
 
 ## 0.8.5
@@ -113,21 +157,21 @@ All notable changes to the "Harbour and xHarbour" extension will be documented i
 
 ## 0.8.1
  - **server** Added missing file
- 
+
 ## 0.8.0
  - **syntax hightlight**: [management of command/translate directive](https://github.com/APerricone/harbourCodeExtension/raw/master/images/command.png)
  - **syntax hightlight**: added abbreviations for local, public, private, etc
  - **server** Added field management
  - **server** Added completition support
  - **server** on workspace symbol you can search a object method adding colon.
- 
+
 ## 0.7.9
  - **Server**: [Added multi workspace support](https://github.com/APerricone/harbourCodeExtension/issues/9)
  - **Debugger**: Added completition support (beta)
  - **Server**: better support on no-workspace environment.
  - **Server**: Fixed gotoDefinition for long names
  - **Debugger**: fixed management of access/assign class data.
- 
+
 ## 0.7.8
  - **Server**: show comment before function declaration as help
  - **Debugger**: [Added support for copy expression, copy value and add to watch](https://github.com/APerricone/harbourCodeExtension/wiki/Debugger#copy-expression).
@@ -143,7 +187,7 @@ All notable changes to the "Harbour and xHarbour" extension will be documented i
 
 ## 0.7.6
  - **syntax hightlight**: fix for datetime constant
- - **syntax hightlight**: allow min #pragma and macro for inline multiline string 
+ - **syntax hightlight**: allow min #pragma and macro for inline multiline string
  - **validation**: added validation of opened file
  - **syntax hightlight**: added __streaminclude syntax and fix __stream syntax
  - **decorator**: removed harbour decorator in not-harbour files.
@@ -161,8 +205,8 @@ All notable changes to the "Harbour and xHarbour" extension will be documented i
  - **Syntax**: fixed text/endtext
 
 ## 0.7.1
- - **Debugger**: Better support for conditional breakpoint and hit count breakoint 
- - **Syntax**: Added TEXT/ENDTEXT 
+ - **Debugger**: Better support for conditional breakpoint and hit count breakoint
+ - **Syntax**: Added TEXT/ENDTEXT
 
 ## 0.7.0
  - **Debugger**: [beta] added interception of error

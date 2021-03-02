@@ -1,11 +1,12 @@
-var debugadapter = require("vscode-debugadapter");
-var debugprotocol = require("vscode-debugprotocol");
-var net = require("net");
-var path = require("path");
-var fs = require("fs");
-var cp = require("child_process");
-var localize = require("./myLocalize.js").localize;
-var process = require("process")
+const debugadapter = require("vscode-debugadapter");
+const debugprotocol = require("vscode-debugprotocol");
+const net = require("net");
+const path = require("path");
+const fs = require("fs");
+const cp = require("child_process");
+const localize = require("./myLocalize.js").localize;
+const process = require("process")
+const trueCase = require("true-case-path")
 
 /** @requires vscode-debugadapter   */
 /// CLASS DEFINITION
@@ -107,7 +108,7 @@ harbourDebugSession.prototype.processInput = function(buff)
 			{
 				this.sendVariables(j,line);
 				break;
-			}			
+			}
 		}
 		if(j!=this.variableCommands.length) continue;
 	}
@@ -116,10 +117,10 @@ harbourDebugSession.prototype.processInput = function(buff)
 /// START
 
 /**
- * @param response{debugprotocol.InitializeResponse} 
- * @param args{debugprotocol.InitializeRequestArguments} 
+ * @param response{debugprotocol.InitializeResponse}
+ * @param args{debugprotocol.InitializeRequestArguments}
  */
-harbourDebugSession.prototype.initializeRequest = function (response, args) 
+harbourDebugSession.prototype.initializeRequest = function (response, args)
 {
 	if (args.locale) {
 		require("./myLocalize.js").reInit(args);
@@ -150,7 +151,7 @@ harbourDebugSession.prototype.initializeRequest = function (response, args)
 };
 
 harbourDebugSession.prototype.configurationDoneRequest = function(response, args)
-{	
+{
 	if(this.startGo)
 	{
 		this.command("GO\r\n");
@@ -165,16 +166,23 @@ harbourDebugSession.prototype.launchRequest = function(response, args)
 	var tc=this;
 	this.justStart = true;
 	this.sourcePaths = []; //[path.dirname(args.program)];
-	if("workspaceRoot" in args)
-	{
-		this.sourcePaths.push(args.workspaceRoot); 
+	if("workspaceRoot" in args) {
+		this.sourcePaths.push(args.workspaceRoot);
 	}
-	if("sourcePaths" in args)
-	{
+	if("sourcePaths" in args) {
 		this.sourcePaths = this.sourcePaths.concat(args.sourcePaths);
 	}
+	for (let idx = 0; idx < this.sourcePaths.length; idx++) {
+		try {
+			this.sourcePaths[idx] = trueCase.trueCasePathSync(this.sourcePaths[idx]);
+		} catch(ex) {
+			// path no found
+			this.sourcePaths.splice(idx,1);
+			idx--;
+		}
+	}
 	this.Debugging = !args.noDebug;
-	this.startGo = args.stopOnEntry===false || args.noDebug===true;	
+	this.startGo = args.stopOnEntry===false || args.noDebug===true;
 	// starts the server
 	var server = net.createServer(socket => {
 		tc.evaluateClient(socket, server, args)
@@ -204,10 +212,10 @@ harbourDebugSession.prototype.launchRequest = function(response, args)
 				tc.sendEvent(new debugadapter.TerminatedEvent());
 				return
 			})
-			process.stderr.on('data', data => 
+			process.stderr.on('data', data =>
 				tc.sendEvent(new debugadapter.OutputEvent(data.toString(),"stderr"))
 			);
-			process.stdout.on('data', data => 
+			process.stdout.on('data', data =>
 				tc.sendEvent(new debugadapter.OutputEvent(data.toString(),"stdout"))
 			);
 			break;
@@ -218,16 +226,29 @@ harbourDebugSession.prototype.launchRequest = function(response, args)
 harbourDebugSession.prototype.attachRequest = function(response, args)
 {
 	var port = args.port? args.port : 6110;
+	if(args.process<=0 && (args.program || "").length==0) {
+		response.success = false;
+		response.message = "invalid parameter";
+		this.sendResponse(response);
+		return;
+	}
 	var tc=this;
 	this.justStart = true;
 	this.sourcePaths = []; //[path.dirname(args.program)];
-	if("workspaceRoot" in args)
-	{
-		this.sourcePaths.push(args.workspaceRoot); 
+	if("workspaceRoot" in args) {
+		this.sourcePaths.push(args.workspaceRoot);
 	}
-	if("sourcePaths" in args)
-	{
+	if("sourcePaths" in args) {
 		this.sourcePaths = this.sourcePaths.concat(args.sourcePaths);
+	}
+	for (let idx = 0; idx < this.sourcePaths.length; idx++) {
+		try {
+			this.sourcePaths[idx] = trueCase.trueCasePathSync(this.sourcePaths[idx]);
+		} catch(ex) {
+			// path no found
+			this.sourcePaths.splice(idx,1);
+			idx--;
+		}
 	}
 	this.Debugging = !args.noDebug;
 	this.startGo = true;
@@ -245,11 +266,11 @@ harbourDebugSession.prototype.SetProcess = function(pid)
 	var interval = setInterval( ()=> {
 		try
 		{
-			process.kill(pid,0);			
+			process.kill(pid,0);
 		} catch(error)
 		{
 			tc.sendEvent(new debugadapter.TerminatedEvent());
-			clearInterval(interval);	
+			clearInterval(interval);
 		}
 	},1000)
 }
@@ -268,44 +289,54 @@ harbourDebugSession.prototype.terminateRequest = function(response, args)
 
 harbourDebugSession.prototype.evaluateClient = function(socket, server, args)
 {
-	var nData=0;
 	var tc =this;
-	var exeTarget = path.basename(args.program,path.extname(args.program)).toLowerCase();
+
 	socket.on("data", data=> {
-		if(tc.socket && nData>0)
-		{
-			tc.processInput(data.toString())
-			return;
-		}
-		if(nData>0)
-		{
-			return
-		}
-		nData++;
-		// the client sended exe name and process ID		
-		var lines = data.toString().split("\r\n");
-		if(lines.length<2) //todo: check if they arrive in 2 tranches.
-			return;
-		var clPath = path.basename(lines[0],path.extname(lines[0])).toLowerCase();
-		if(clPath!=exeTarget)
-		{
+		try {
+			if(tc.socket==socket) {
+				tc.processInput(data.toString())
+				return;
+			}
+			// the client sended exe name and process ID
+			var lines = data.toString().split("\r\n");
+			if(lines.length<2)  {//todo: check if they arrive in 2 tranches.
+				socket.write("NO\r\n")
+				socket.end();
+				return;
+			}
+			if(args.program && args.program.length>0) {
+				var exeTarget = path.basename(args.program,path.extname(args.program)).toLowerCase();
+				var clPath = path.basename(lines[0],path.extname(lines[0])).toLowerCase();
+				if(clPath!=exeTarget)
+				{
+					socket.write("NO\r\n")
+					socket.end();
+					return;
+				}
+			}
+			var processId = parseInt(lines[1]);
+			if(args.process && args.process>0 && args.process!=processId) {
+				socket.write("NO\r\n")
+				socket.end();
+				return;
+			}
+			socket.write("HELLO\r\n")
+			tc.SetProcess(processId);
+			//connected!
+			tc.sendEvent(new debugadapter.InitializedEvent());
+			server.close();
+			tc.socket = socket;
+			socket.removeAllListeners("data");
+			socket.on("data", data=> {
+				tc.processInput(data.toString())
+			});
+			socket.write(tc.queue);
+			this.justStart = false;
+			tc.queue = "";
+		} catch(ex) {
 			socket.write("NO\r\n")
 			socket.end();
-			return;
-		}
-		socket.write("HELLO\r\n")
-		tc.SetProcess(parseInt(lines[1]));
-		//connected!
-		tc.sendEvent(new debugadapter.InitializedEvent());
-		server.close();
-		tc.socket = socket;
-		socket.removeAllListeners("data");
-		socket.on("data", data=> {
-			tc.processInput(data.toString())
-		});
-		socket.write(tc.queue);
-		this.justStart = false;
-		tc.queue = "";
+	}
 	});
 }
 
@@ -342,28 +373,6 @@ harbourDebugSession.prototype.threadsRequest = function(response)
 	this.sendResponse(response)
 }
 
-/** https://stackoverflow.com/questions/33086985/how-to-obtain-case-exact-path-of-a-file-in-node-js-on-windows
- * @param {string} filePath
- * @returns {string|undefined}
- */
-function getRealPath(filePath) {
-	if(!process.platform.startsWith("win")) return filePath;
-    /** @type {number} */
-    var i;
-    /** @type {string} */
-    var dirname = path.dirname(filePath);
-    /** @type {string} */
-    var lowerFileName = path.basename(filePath).toLowerCase();
-    /** @type {Array.<string>} */
-    var fileNames = fs.readdirSync(dirname);
-
-    for (i = 0; i < fileNames.length; i += 1) {
-        if (fileNames[i].toLowerCase() === lowerFileName) {
-            return path.join(dirname, fileNames[i]);
-        }
-    }
-}
-
 harbourDebugSession.prototype.sendStack = function(line) {
 	var nStack = parseInt(line.substring(6));
 	var frames = [];
@@ -375,20 +384,29 @@ harbourDebugSession.prototype.sendStack = function(line) {
 		for(i=0;i<infos.length;i++) infos[i]=infos[i].replace(";",":")
 		var completePath = infos[0]
 		var found = false;
-		if(path.isAbsolute(infos[0]) && fs.existsSync(infos[0]))
-		{
-			completePath = getRealPath(infos[0]);
-			found=true;
-		} else
-			for(i=0;i<this.sourcePaths.length;i++)
-			{
-				if(fs.existsSync(path.join(this.sourcePaths[i],infos[0])))
-				{
-					completePath = getRealPath(path.join(this.sourcePaths[i],infos[0]));
+		if(infos[0].length>0) {
+				if(path.isAbsolute(infos[0]) && fs.existsSync(infos[0])) {
+					completePath = infos[0];
 					found=true;
-					break;
+					try {
+						completePath = trueCase.trueCasePathSync(infos[0]);
+					} catch(ex) {}
+				} else
+				for(i=0;i<this.sourcePaths.length;i++) {
+					if(fs.existsSync(path.join(this.sourcePaths[i],infos[0]))) {
+						completePath = path.join(this.sourcePaths[i],infos[0]);
+						found=true;
+						try {
+							completePath = trueCase.trueCasePathSync(infos[0],this.sourcePaths[i]);
+						} catch(ex) {
+							try {
+								completePath = trueCase.trueCasePathSync(completePath);
+							} catch(ex2) {}
+						}
+						break;
 				}
-			}
+				}
+		}
 		if(found) infos[0]=path.basename(completePath);
 		frames[j] = new debugadapter.StackFrame(j,infos[2],
 			new debugadapter.Source(infos[0],completePath),
@@ -432,9 +450,9 @@ harbourDebugSession.prototype.sendScope = function(inError)
 	this.variableCommands = this.variableCommands.concat(["LOCALS","PUBLICS","PRIVATES", "PRIVATE_CALLEE","STATICS"]);
 	//TODO: "GLOBALS","EXTERNALS"
 	this.varResp = [];
-	this.varResp.length = this.variableCommands.length;	
+	this.varResp.length = this.variableCommands.length;
 	this.variableEvaluations =  [];
-	this.variableEvaluations.length = this.variableCommands.length;	
+	this.variableEvaluations.length = this.variableCommands.length;
 	var n=0;
 	var scopes = [];
 	if(inError)
@@ -546,9 +564,9 @@ harbourDebugSession.prototype.sendVariables = function(id,line)
 		{ //the value can contains : , we need to rejoin it.
 			infos[6] = infos.splice(6).join(":");
 		}
-		var v = new debugadapter.Variable(infos[4],infos[6],line);
+		var v = new debugadapter.Variable(infos[4],infos[6]);
 		v = this.getVariableFormat(v,infos[5],infos[6],"value",line,id);
-		vars.push(v);		
+		vars.push(v);
 	}
 }
 
@@ -602,7 +620,7 @@ harbourDebugSession.prototype.setBreakPointsRequest = function(response,args)
 	dest = this.breakpoints[src];
 	for (var i in dest) {
 		if (dest.hasOwnProperty(i)) {
-			dest[i] = "-" + dest[i]; 
+			dest[i] = "-" + dest[i];
 		}
 	}
 	// check current breakpoints
@@ -654,10 +672,10 @@ harbourDebugSession.prototype.processBreak = function(line)
 {
 	//this.sendEvent(new debugadapter.OutputEvent("received: "+line+"\r\n","console"))
 	var aInfos = line.split(":");
-	var dest 
+	var dest
 	if(!(aInfos[1] in this.breakpoints))
 	{
-		//error 
+		//error
 		return
 	}
 	aInfos[2] = parseInt(aInfos[2]);
@@ -686,7 +704,7 @@ harbourDebugSession.prototype.processBreak = function(line)
 		else
 			dest.response.body.breakpoints[idBreak].message = localize('harbour.dbgNoLine')
 		dest[aInfos[2]] = 1;
-	} 
+	}
 	this.checkBreakPoint(aInfos[1]);
 }
 
@@ -697,7 +715,7 @@ harbourDebugSession.prototype.checkBreakPoint = function(src)
 		if (dest.hasOwnProperty(i) && i!="response") {
 			if(dest[i]!=1)
 			{
-				return; 
+				return;
 			}
 		}
 	}
@@ -716,7 +734,7 @@ harbourDebugSession.prototype.setExceptionBreakPointsRequest = function(response
 	{
 		errorType++;
 	}
-	this.command(`ERRORTYPE\r\n${errorType}\r\n`)	
+	this.command(`ERRORTYPE\r\n${errorType}\r\n`)
 	this.sendResponse(response);
 }
 
@@ -725,9 +743,9 @@ harbourDebugSession.prototype.setExceptionBreakPointsRequest = function(response
 harbourDebugSession.prototype.evaluateRequest = function(response,args)
 {
 	response.body = {};
-	response.body.result = args.expression; 
+	response.body.result = args.expression;
 	this.evaluateResponses.push(response);
-	this.command(`EXPRESSION\r\n${args.frameId+1 || this.currentStack}:${args.expression.replace(/:/g,";")}\r\n`)	
+	this.command(`EXPRESSION\r\n${args.frameId+1 || this.currentStack}:${args.expression.replace(/:/g,";")}\r\n`)
 }
 
 /**
@@ -751,7 +769,7 @@ harbourDebugSession.prototype.processExpression = function(line)
 		resp.message = infos[3];
 	} else
 		resp.body = this.getVariableFormat(resp.body,infos[2],infos[3],"result",line);
-	this.sendResponse(resp);	
+	this.sendResponse(resp);
 }
 
 /// Completition
@@ -763,7 +781,7 @@ harbourDebugSession.prototype.processExpression = function(line)
 harbourDebugSession.prototype.completionsRequest = function(response, args)
 {
 	this.completionsResponse = response;
-	this.command(`COMPLETITION\r\n${args.frameId+1 || this.currentStack}:${args.text}\r\n`)	
+	this.command(`COMPLETITION\r\n${args.frameId+1 || this.currentStack}:${args.text}\r\n`)
 }
 
 /**
@@ -784,15 +802,15 @@ harbourDebugSession.prototype.processCompletion = function()
 		var type = line.substr(0,line.indexOf(":"));
 		line = line.substr(line.indexOf(":")+1);
 		var thisCompletion = new debugadapter.CompletionItem(line,0);
-		thisCompletion.type = type=="F"? 'function': 
-							  type=="M"? 'field' : 
+		thisCompletion.type = type=="F"? 'function':
+							  type=="M"? 'field' :
 							  type=="D"? 'variable' : 'value';
 		// function/procedure -> function
 		// method -> field
 		// data -> variable
 		// local/public/etc -> value
 		this.completionsResponse.body.targets.push(thisCompletion);
-	}	
+	}
 }
 
 
